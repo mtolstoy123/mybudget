@@ -49,7 +49,22 @@
     font-size: 30px; font-weight: 700; margin-top: 4px; letter-spacing: -0.02em;
   }
   .total small { font-size: 15px; color: var(--muted); font-weight: 500; margin-left: 4px; }
-  .period-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .period-nav { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+  .period-label {
+    flex: 1; font-size: 13px; color: var(--text); font-weight: 500;
+    text-align: center; padding: 6px 10px; border-radius: 9px;
+    background: var(--surface); border: 1px solid var(--line);
+  }
+  .period-label:active { background: var(--surface-2); }
+  .nav-arrow {
+    width: 38px; height: 34px; border-radius: 9px; flex: 0 0 auto;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--text); font-size: 22px; line-height: 1; font-weight: 400;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-arrow:active { background: var(--surface-2); }
+  .nav-arrow:disabled { opacity: .3; }
+  .nav-arrow.hidden { visibility: hidden; }
 
   /* ===== Input zone ===== */
   .input-zone {
@@ -177,17 +192,46 @@
     background: var(--surface-2); border: 1px solid var(--line); font-weight: 600; font-size: 15px;
   }
   .seg {
-    display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 11px; margin: 4px 0 14px;
+    display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 11px; margin: 4px 0 14px;
   }
   .seg button {
-    flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; color: var(--muted); font-weight: 500;
+    flex: 1; padding: 9px 4px; border-radius: 8px; font-size: 12.5px; color: var(--muted); font-weight: 500;
+    white-space: nowrap;
   }
   .seg button.on { background: var(--accent); color: #fff; }
+
+  /* Произвольный интервал */
+  .custom-range { display: none; gap: 10px; margin: -4px 0 14px; }
+  .custom-range.show { display: flex; }
+  .date-field { flex: 1; }
+  .date-field label {
+    display: block; font-size: 11px; color: var(--muted); margin: 0 0 5px 2px; letter-spacing: .03em;
+  }
+  .date-field input {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 14px;
+    outline: none; color-scheme: dark;
+  }
+  .date-field input:focus { border-color: var(--accent); }
+
+  /* Навигация внутри шторки */
+  .sheet-nav { display: none; align-items: center; gap: 8px; margin: 0 0 14px; }
+  .sheet-nav.show { display: flex; }
+  .sheet-nav-label {
+    flex: 1; text-align: center; font-size: 14px; font-weight: 600; color: var(--text);
+  }
+
   .export-row { display: flex; gap: 10px; margin-top: 4px; }
   .export-row button {
     flex: 1; padding: 13px; border-radius: 11px; border: 1px solid var(--line);
     background: var(--surface-2); font-size: 14px; font-weight: 500;
   }
+
+  /* Круговая диаграмма */
+  .pie-wrap { display: flex; flex-direction: column; align-items: center; margin: 6px 0 18px; }
+  .pie-svg { width: 190px; height: 190px; }
+  .pie-center-val { font-size: 19px; font-weight: 700; fill: var(--text); }
+  .pie-center-lbl { font-size: 10px; fill: var(--muted); }
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
     background: var(--good); color: #08130d; padding: 11px 20px; border-radius: 12px;
@@ -209,7 +253,11 @@
     </div>
   </div>
   <div class="total"><span id="totalVal">0</span><small id="curLabel">₸</small></div>
-  <div class="period-label" id="periodLabel">Сегодня</div>
+  <div class="period-nav">
+    <button class="nav-arrow" id="navPrev" aria-label="Предыдущий период">‹</button>
+    <button class="period-label" id="periodLabel">Сегодня</button>
+    <button class="nav-arrow" id="navNext" aria-label="Следующий период">›</button>
+  </div>
 </header>
 
 <div class="input-zone">
@@ -248,12 +296,34 @@
     <div class="grab"></div>
     <h2>Период и статистика</h2>
     <div class="seg" id="periodSeg">
-      <button data-p="today">Сегодня</button>
+      <button data-p="today">День</button>
       <button data-p="week">Неделя</button>
       <button data-p="month">Месяц</button>
       <button data-p="all">Всё</button>
+      <button data-p="custom">Интервал</button>
     </div>
+
+    <!-- Поля произвольного интервала -->
+    <div class="custom-range" id="customRange">
+      <div class="date-field">
+        <label>С</label>
+        <input type="date" id="dateFrom">
+      </div>
+      <div class="date-field">
+        <label>По</label>
+        <input type="date" id="dateTo">
+      </div>
+    </div>
+
+    <!-- Навигация по периодам -->
+    <div class="sheet-nav" id="sheetNav">
+      <button class="nav-arrow" id="sheetPrev">‹</button>
+      <div class="sheet-nav-label" id="sheetNavLabel">Сегодня</div>
+      <button class="nav-arrow" id="sheetNext">›</button>
+    </div>
+
     <div id="statBody"></div>
+
     <div class="sub" style="margin:18px 0 6px">Резервная копия (перенос между устройствами)</div>
     <div class="export-row">
       <button id="backupBtn">💾 Сохранить в файл</button>
@@ -294,6 +364,9 @@ let cats = load(LS_C, DEFAULT_CATS);
 let selCat = cats[0]?.id || null;
 let selNewColor = PALETTE[0];
 let period = 'today';
+let periodOffset = 0;          // 0 = текущий, -1 = предыдущий, +1 = следующий
+let customFrom = null;          // 'YYYY-MM-DD' для режима custom
+let customTo = null;
 
 function load(k, def) {
   try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; }
@@ -307,19 +380,80 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function fmt(n) { return n.toLocaleString('ru-RU'); }
 function catById(id) { return cats.find(c => c.id === id); }
 
-// ---- Period filtering ----
-function inPeriod(ts) {
-  const d = new Date(ts), now = new Date();
-  if (period === 'all') return true;
-  if (period === 'today') return d.toDateString() === now.toDateString();
-  if (period === 'week') {
-    const day = (now.getDay() + 6) % 7; // monday=0
-    const start = new Date(now); start.setHours(0,0,0,0); start.setDate(now.getDate() - day);
-    return d >= start;
+// ---- Period range engine ----
+// Возвращает {start, end} (Date) для текущего периода с учётом смещения,
+// либо null/null для режима "всё". Конец — эксклюзивный (начало следующего).
+function getRange() {
+  const now = new Date();
+
+  if (period === 'all') return { start: null, end: null };
+
+  if (period === 'custom') {
+    if (!customFrom || !customTo) return { start: null, end: null };
+    const s = new Date(customFrom + 'T00:00:00');
+    const e = new Date(customTo + 'T00:00:00'); e.setDate(e.getDate() + 1);
+    return { start: s, end: e };
   }
-  if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+
+  if (period === 'today') {
+    const s = new Date(now); s.setHours(0,0,0,0); s.setDate(s.getDate() + periodOffset);
+    const e = new Date(s); e.setDate(e.getDate() + 1);
+    return { start: s, end: e };
+  }
+
+  if (period === 'week') {
+    const day = (now.getDay() + 6) % 7; // monday = 0
+    const s = new Date(now); s.setHours(0,0,0,0); s.setDate(s.getDate() - day + periodOffset * 7);
+    const e = new Date(s); e.setDate(e.getDate() + 7);
+    return { start: s, end: e };
+  }
+
+  if (period === 'month') {
+    const s = new Date(now.getFullYear(), now.getMonth() + periodOffset, 1);
+    const e = new Date(s.getFullYear(), s.getMonth() + 1, 1);
+    return { start: s, end: e };
+  }
 }
-const PERIOD_NAME = { today: 'Сегодня', week: 'Эта неделя', month: 'Этот месяц', all: 'Всё время' };
+
+function inPeriod(ts) {
+  const { start, end } = getRange();
+  if (!start || !end) return true;
+  return ts >= start.getTime() && ts < end.getTime();
+}
+
+// Заголовок текущего диапазона для шапки и шторки
+const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+function rangeLabel() {
+  if (period === 'all') return 'Всё время';
+  const { start, end } = getRange();
+  if (period === 'custom') {
+    if (!start || !end) return 'Выберите даты';
+    const e = new Date(end); e.setDate(e.getDate() - 1);
+    return `${start.getDate()} ${MONTHS[start.getMonth()]} — ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
+  }
+  const now = new Date();
+  if (period === 'today') {
+    if (periodOffset === 0) return 'Сегодня';
+    if (periodOffset === -1) return 'Вчера';
+    return `${start.getDate()} ${MONTHS[start.getMonth()]} ${start.getFullYear()}`;
+  }
+  if (period === 'week') {
+    const e = new Date(end); e.setDate(e.getDate() - 1);
+    const prefix = periodOffset === 0 ? 'Эта неделя · ' : '';
+    return `${prefix}${start.getDate()} ${MONTHS[start.getMonth()]} — ${e.getDate()} ${MONTHS[e.getMonth()]}`;
+  }
+  if (period === 'month') {
+    const cap = MONTHS[start.getMonth()].charAt(0).toUpperCase() + MONTHS[start.getMonth()].slice(1);
+    const yr = start.getFullYear() !== now.getFullYear() ? ' ' + start.getFullYear() : '';
+    return `${cap}${yr}`;
+  }
+}
+// Можно ли листать вперёд (не уходим в будущее)
+function canGoNext() {
+  if (period === 'all' || period === 'custom') return false;
+  return periodOffset < 0;
+}
+function supportsNav() { return period !== 'all' && period !== 'custom'; }
 
 // ---- Render category chips ----
 function renderChips() {
@@ -343,7 +477,7 @@ function renderList() {
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
   document.getElementById('totalVal').textContent = fmt(total);
-  document.getElementById('periodLabel').textContent = PERIOD_NAME[period];
+  document.getElementById('periodLabel').textContent = rangeLabel();
 
   if (filtered.length === 0) {
     list.innerHTML = `<div class="empty"><div class="big">🧾</div>Пока нет расходов за этот период.<br>Введите сумму выше.</div>`;
@@ -490,30 +624,145 @@ document.getElementById('newCatAdd').onclick = () => {
 
 // ---- Stats / period ----
 const statOverlay = document.getElementById('statOverlay');
-document.getElementById('statBtn').onclick = () => { renderSeg(); renderStat(); statOverlay.classList.add('show'); };
+document.getElementById('statBtn').onclick = () => { refreshPeriodUI(); statOverlay.classList.add('show'); };
 document.getElementById('statDone').onclick = () => statOverlay.classList.remove('show');
+
+// Полное обновление всего, что зависит от периода (шапка + шторка + список)
+function refreshPeriodUI() {
+  renderSeg();
+  renderCustomRange();
+  renderSheetNav();
+  renderStat();
+  renderHeaderNav();
+  renderList();
+}
 
 function renderSeg() {
   document.querySelectorAll('#periodSeg button').forEach(b => {
     b.classList.toggle('on', b.dataset.p === period);
-    b.onclick = () => { period = b.dataset.p; renderSeg(); renderStat(); renderList(); };
+    b.onclick = () => {
+      period = b.dataset.p;
+      periodOffset = 0;
+      if (period === 'custom') initCustomDefaults();
+      refreshPeriodUI();
+    };
   });
 }
+
+// Поля произвольного интервала
+function initCustomDefaults() {
+  if (customFrom && customTo) return;
+  const now = new Date();
+  const monthAgo = new Date(now); monthAgo.setDate(now.getDate() - 30);
+  customTo = toISODate(now);
+  customFrom = toISODate(monthAgo);
+}
+function toISODate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function renderCustomRange() {
+  const box = document.getElementById('customRange');
+  const show = period === 'custom';
+  box.classList.toggle('show', show);
+  if (show) {
+    const from = document.getElementById('dateFrom');
+    const to = document.getElementById('dateTo');
+    from.value = customFrom || '';
+    to.value = customTo || '';
+  }
+}
+document.getElementById('dateFrom').onchange = (e) => {
+  customFrom = e.target.value;
+  if (customTo && customFrom > customTo) { customTo = customFrom; }
+  refreshPeriodUI();
+};
+document.getElementById('dateTo').onchange = (e) => {
+  customTo = e.target.value;
+  if (customFrom && customTo < customFrom) { customFrom = customTo; }
+  refreshPeriodUI();
+};
+
+// Навигация в шторке
+function renderSheetNav() {
+  const nav = document.getElementById('sheetNav');
+  const show = supportsNav();
+  nav.classList.toggle('show', show);
+  if (!show) return;
+  document.getElementById('sheetNavLabel').textContent = rangeLabel();
+  document.getElementById('sheetNext').disabled = !canGoNext();
+}
+document.getElementById('sheetPrev').onclick = () => { periodOffset--; refreshPeriodUI(); };
+document.getElementById('sheetNext').onclick = () => { if (canGoNext()) { periodOffset++; refreshPeriodUI(); } };
+
+// Навигация в шапке
+function renderHeaderNav() {
+  const prev = document.getElementById('navPrev');
+  const next = document.getElementById('navNext');
+  const show = supportsNav();
+  prev.classList.toggle('hidden', !show);
+  next.classList.toggle('hidden', !show);
+  if (show) next.disabled = !canGoNext();
+}
+document.getElementById('navPrev').onclick = () => { if (supportsNav()) { periodOffset--; refreshPeriodUI(); } };
+document.getElementById('navNext').onclick = () => { if (supportsNav() && canGoNext()) { periodOffset++; refreshPeriodUI(); } };
+document.getElementById('periodLabel').onclick = () => { refreshPeriodUI(); statOverlay.classList.add('show'); };
+
+// Построение SVG-дуги для сектора пирога
+function arcPath(cx, cy, r, startAngle, endAngle) {
+  const a0 = (startAngle - 90) * Math.PI / 180;
+  const a1 = (endAngle - 90) * Math.PI / 180;
+  const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
+  const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+  const large = (endAngle - startAngle) > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
+}
+
 function renderStat() {
   const body = document.getElementById('statBody');
   const filtered = entries.filter(e => inPeriod(e.ts));
   const total = filtered.reduce((s, e) => s + e.amount, 0);
-  if (total === 0) { body.innerHTML = `<div class="sub">Нет данных за период.</div>`; return; }
+
+  if (period === 'custom' && (!customFrom || !customTo)) {
+    body.innerHTML = `<div class="sub">Укажите даты начала и конца интервала.</div>`;
+    return;
+  }
+  if (total === 0) { body.innerHTML = `<div class="sub">Нет расходов за этот период.</div>`; return; }
 
   const byCat = {};
   filtered.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + e.amount; });
   const rows = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
 
-  let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Всего: <b style="color:var(--text)">${fmt(total)} ${CUR}</b> · ${filtered.length} записей</div>`;
+  // --- Круговая диаграмма ---
+  const cx = 95, cy = 95, r = 78, hole = 48;
+  let angle = 0;
+  let slices = '';
+  rows.forEach(([cid, sum]) => {
+    const c = catById(cid) || { color: '#666' };
+    const sweep = sum / total * 360;
+    // отрисовываем как сектор; если всего одна категория — полный круг
+    if (sweep >= 359.999) {
+      slices += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c.color}"/>`;
+    } else {
+      slices += `<path d="${arcPath(cx, cy, r, angle, angle + sweep)}" fill="${c.color}"/>`;
+    }
+    angle += sweep;
+  });
+  const pie = `
+    <div class="pie-wrap">
+      <svg class="pie-svg" viewBox="0 0 190 190">
+        ${slices}
+        <circle cx="${cx}" cy="${cy}" r="${hole}" fill="var(--surface)"/>
+        <text class="pie-center-val" x="${cx}" y="${cy - 2}" text-anchor="middle">${fmt(total)}</text>
+        <text class="pie-center-lbl" x="${cx}" y="${cy + 13}" text-anchor="middle">${CUR} · ${filtered.length} зап.</text>
+      </svg>
+    </div>`;
+
+  // --- Легенда со столбиками ---
+  let legend = '';
   rows.forEach(([cid, sum]) => {
     const c = catById(cid) || { name: 'Удалено', color: '#666' };
     const pct = Math.round(sum / total * 100);
-    html += `<div style="margin-bottom:12px">
+    legend += `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px">
         <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c.color};margin-right:7px"></span>${esc(c.name)}</span>
         <span style="color:var(--muted)">${fmt(sum)} ${CUR} · ${pct}%</span>
@@ -523,7 +772,8 @@ function renderStat() {
       </div>
     </div>`;
   });
-  body.innerHTML = html;
+
+  body.innerHTML = pie + legend;
 }
 
 // ---- Backup / restore JSON ----
@@ -573,7 +823,7 @@ restoreInput.onchange = () => {
       // fix entries pointing to cats matched by name after merge
       save();
       selCat = cats[0]?.id || null;
-      renderChips(); renderList(); renderSeg(); renderStat();
+      renderChips(); refreshPeriodUI();
       toast('Данные загружены');
     } catch {
       toast('Не удалось прочитать файл');
@@ -605,7 +855,7 @@ document.getElementById('exportBtn').onclick = () => {
 };
 document.getElementById('clearBtn').onclick = () => {
   if (!confirm('Удалить все записи? Категории останутся.')) return;
-  entries = []; save(); renderList(); renderStat();
+  entries = []; save(); refreshPeriodUI();
   toast('Очищено');
 };
 
@@ -629,6 +879,7 @@ document.getElementById('curSign').textContent = CUR;
 selNewColor = PALETTE[cats.length % PALETTE.length];
 renderChips();
 renderList();
+renderHeaderNav();
 </script>
 </body>
 </html>
