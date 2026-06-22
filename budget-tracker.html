@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Расходы</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #181b22;
+    --surface-2: #20242e;
+    --line: #2a2f3a;
+    --text: #e8eaed;
+    --muted: #8b919e;
+    --accent: #5b8cff;
+    --accent-soft: rgba(91,140,255,0.14);
+    --danger: #ff5b6e;
+    --good: #3ddc97;
+    --r: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overscroll-behavior: none;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, select { font-family: inherit; }
+
+  /* ===== Header ===== */
+  header {
+    padding: 16px 18px 10px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .head-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .total-label { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .head-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    font-size: 13px; color: var(--muted); padding: 5px 10px;
+    border-radius: 9px; border: 1px solid var(--line);
+  }
+  .icon-btn:active { background: var(--surface-2); }
+  .total {
+    font-size: 30px; font-weight: 700; margin-top: 4px; letter-spacing: -0.02em;
+  }
+  .total small { font-size: 15px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+  .period-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ===== Input zone ===== */
+  .input-zone {
+    padding: 14px 18px 10px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .amount-wrap {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r); padding: 12px 14px;
+  }
+  .amount-wrap:focus-within { border-color: var(--accent); }
+  .amount-input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-size: 26px; font-weight: 600; width: 100%;
+  }
+  .amount-input::placeholder { color: var(--muted); font-weight: 500; }
+  .cur { color: var(--muted); font-size: 18px; font-weight: 600; }
+
+  /* categories chips */
+  .cats {
+    display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px;
+    scrollbar-width: none;
+  }
+  .cats::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: 0 0 auto; padding: 9px 14px; border-radius: 11px;
+    background: var(--surface); border: 1px solid var(--line);
+    font-size: 14px; color: var(--text); display: flex; align-items: center; gap: 7px;
+    transition: transform .05s;
+  }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .chip:active { transform: scale(.95); }
+  .chip.sel { border-color: transparent; }
+
+  .comment-row { margin-top: 10px; display: none; }
+  .comment-row.show { display: block; }
+  .comment-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 11px; padding: 11px 14px; color: var(--text); font-size: 15px; outline: none;
+  }
+  .comment-input:focus { border-color: var(--accent); }
+  .comment-input::placeholder { color: var(--muted); }
+
+  .add-btn {
+    width: 100%; margin-top: 12px; padding: 15px; border-radius: var(--r);
+    background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: opacity .15s, transform .05s;
+  }
+  .add-btn:active { transform: scale(.98); }
+  .add-btn:disabled { opacity: .4; }
+
+  /* ===== List ===== */
+  .list { flex: 1; overflow-y: auto; padding: 8px 18px 90px; }
+  .day-head {
+    font-size: 12px; color: var(--muted); padding: 14px 2px 8px;
+    display: flex; justify-content: space-between; letter-spacing: .02em;
+  }
+  .day-head .day-sum { font-weight: 600; color: var(--text); }
+  .entry {
+    display: flex; align-items: center; gap: 12px; padding: 12px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .entry .dot { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; }
+  .entry-mid { flex: 1; min-width: 0; }
+  .entry-cat { font-size: 15px; font-weight: 500; }
+  .entry-note { font-size: 13px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry-amt { font-size: 16px; font-weight: 600; flex: 0 0 auto; }
+  .del {
+    font-size: 18px; color: var(--muted); padding: 4px 8px; flex: 0 0 auto;
+    opacity: 0; transition: opacity .15s;
+  }
+  .entry:active .del, .del:active { opacity: 1; }
+  .empty {
+    text-align: center; color: var(--muted); padding: 60px 20px; font-size: 15px; line-height: 1.6;
+  }
+  .empty .big { font-size: 32px; margin-bottom: 10px; }
+
+  /* ===== Modal ===== */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: none; align-items: flex-end; z-index: 50;
+  }
+  .overlay.show { display: flex; }
+  .sheet {
+    background: var(--surface); width: 100%; border-radius: 20px 20px 0 0;
+    padding: 8px 18px calc(18px + env(safe-area-inset-bottom)); max-height: 85vh; overflow-y: auto;
+    animation: up .22s ease;
+  }
+  @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .grab { width: 40px; height: 4px; background: var(--line); border-radius: 2px; margin: 8px auto 14px; }
+  .sheet h2 { font-size: 18px; margin-bottom: 4px; }
+  .sheet .sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+  .cat-edit {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .cat-edit .dot { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; }
+  .cat-edit .name { flex: 1; font-size: 15px; }
+  .cat-edit .name input {
+    width: 100%; background: none; border: none; outline: none; color: var(--text); font-size: 15px;
+    border-bottom: 1px dashed transparent; padding: 2px 0;
+  }
+  .cat-edit .name input:focus { border-bottom-color: var(--accent); }
+  .cat-edit .rm { font-size: 20px; color: var(--danger); padding: 2px 6px; }
+  .cat-edit .drag { color: var(--muted); font-size: 16px; cursor: grab; }
+
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .color-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; }
+  .color-dot.sel { border-color: var(--text); }
+
+  .add-cat-row { display: flex; gap: 10px; margin-top: 18px; }
+  .add-cat-row input {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 11px; padding: 12px 14px; color: var(--text); font-size: 15px; outline: none;
+  }
+  .add-cat-row input:focus { border-color: var(--accent); }
+  .add-cat-row button {
+    background: var(--accent); color: #fff; padding: 0 18px; border-radius: 11px; font-weight: 600; font-size: 15px;
+  }
+  .sheet-done {
+    width: 100%; margin-top: 20px; padding: 14px; border-radius: var(--r);
+    background: var(--surface-2); border: 1px solid var(--line); font-weight: 600; font-size: 15px;
+  }
+  .seg {
+    display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 11px; margin: 4px 0 14px;
+  }
+  .seg button {
+    flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; color: var(--muted); font-weight: 500;
+  }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .export-row { display: flex; gap: 10px; margin-top: 4px; }
+  .export-row button {
+    flex: 1; padding: 13px; border-radius: 11px; border: 1px solid var(--line);
+    background: var(--surface-2); font-size: 14px; font-weight: 500;
+  }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--good); color: #08130d; padding: 11px 20px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: all .25s; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-row">
+    <div>
+      <div class="total-label">Потрачено</div>
+    </div>
+    <div class="head-actions">
+      <button class="icon-btn" id="statBtn">Период</button>
+      <button class="icon-btn" id="editCatBtn">Категории</button>
+    </div>
+  </div>
+  <div class="total"><span id="totalVal">0</span><small id="curLabel">₸</small></div>
+  <div class="period-label" id="periodLabel">Сегодня</div>
+</header>
+
+<div class="input-zone">
+  <div class="amount-wrap">
+    <input class="amount-input" id="amount" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+    <span class="cur" id="curSign">₸</span>
+  </div>
+  <div class="cats" id="catChips"></div>
+  <div class="comment-row" id="commentRow">
+    <input class="comment-input" id="comment" placeholder="Комментарий…" autocomplete="off">
+  </div>
+  <button class="add-btn" id="addBtn" disabled>＋ Добавить</button>
+</div>
+
+<div class="list" id="list"></div>
+
+<!-- Category editor -->
+<div class="overlay" id="catOverlay">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Категории</h2>
+    <div class="sub">Нажмите на название, чтобы изменить</div>
+    <div id="catEditList"></div>
+    <div class="add-cat-row">
+      <input id="newCatName" placeholder="Новая категория" autocomplete="off">
+      <button id="newCatAdd">Добавить</button>
+    </div>
+    <div class="color-picker" id="newCatColors"></div>
+    <button class="sheet-done" id="catDone">Готово</button>
+  </div>
+</div>
+
+<!-- Period / stats -->
+<div class="overlay" id="statOverlay">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Период и статистика</h2>
+    <div class="seg" id="periodSeg">
+      <button data-p="today">Сегодня</button>
+      <button data-p="week">Неделя</button>
+      <button data-p="month">Месяц</button>
+      <button data-p="all">Всё</button>
+    </div>
+    <div id="statBody"></div>
+    <div class="sub" style="margin:18px 0 6px">Резервная копия (перенос между устройствами)</div>
+    <div class="export-row">
+      <button id="backupBtn">💾 Сохранить в файл</button>
+      <button id="restoreBtn">📂 Загрузить из файла</button>
+    </div>
+    <div class="sub" style="font-size:12px;margin:10px 2px 0;line-height:1.5">
+      «Сохранить» создаёт файл <b>budget-data.json</b> со всеми записями и категориями. Положи его в облако — и на другом телефоне нажми «Загрузить», чтобы восстановить всё целиком.
+    </div>
+
+    <div class="sub" style="margin:18px 0 6px">Экспорт для таблиц</div>
+    <div class="export-row">
+      <button id="exportBtn">⤓ Экспорт CSV</button>
+      <button id="clearBtn" style="color:var(--danger)">Очистить всё</button>
+    </div>
+    <input type="file" id="restoreInput" accept=".json,application/json" style="display:none">
+    <button class="sheet-done" id="statDone">Закрыть</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PALETTE = ['#5b8cff','#3ddc97','#ff5b6e','#ffb84d','#b06bff','#4dd0e1','#ff8a5b','#7cc454','#f06292','#90a4ae'];
+const CUR = '₸';
+const LS_E = 'budget_entries_v1';
+const LS_C = 'budget_cats_v1';
+
+const DEFAULT_CATS = [
+  { id: 'c1', name: 'Еда', color: '#3ddc97' },
+  { id: 'c2', name: 'Транспорт', color: '#5b8cff' },
+  { id: 'c3', name: 'Дом', color: '#ffb84d' },
+  { id: 'c4', name: 'Развлечения', color: '#b06bff' },
+  { id: 'c5', name: 'Прочее', color: '#90a4ae' },
+];
+
+let entries = load(LS_E, []);
+let cats = load(LS_C, DEFAULT_CATS);
+let selCat = cats[0]?.id || null;
+let selNewColor = PALETTE[0];
+let period = 'today';
+
+function load(k, def) {
+  try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; }
+  catch { return def; }
+}
+function save() {
+  localStorage.setItem(LS_E, JSON.stringify(entries));
+  localStorage.setItem(LS_C, JSON.stringify(cats));
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function fmt(n) { return n.toLocaleString('ru-RU'); }
+function catById(id) { return cats.find(c => c.id === id); }
+
+// ---- Period filtering ----
+function inPeriod(ts) {
+  const d = new Date(ts), now = new Date();
+  if (period === 'all') return true;
+  if (period === 'today') return d.toDateString() === now.toDateString();
+  if (period === 'week') {
+    const day = (now.getDay() + 6) % 7; // monday=0
+    const start = new Date(now); start.setHours(0,0,0,0); start.setDate(now.getDate() - day);
+    return d >= start;
+  }
+  if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
+const PERIOD_NAME = { today: 'Сегодня', week: 'Эта неделя', month: 'Этот месяц', all: 'Всё время' };
+
+// ---- Render category chips ----
+function renderChips() {
+  const box = document.getElementById('catChips');
+  box.innerHTML = '';
+  cats.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (c.id === selCat ? ' sel' : '');
+    if (c.id === selCat) { b.style.background = c.color + '26'; b.style.color = c.color; }
+    b.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c.name}`;
+    b.onclick = () => { selCat = c.id; renderChips(); };
+    box.appendChild(b);
+  });
+  if (!catById(selCat) && cats[0]) selCat = cats[0].id;
+}
+
+// ---- Render list ----
+function renderList() {
+  const list = document.getElementById('list');
+  const filtered = entries.filter(e => inPeriod(e.ts)).sort((a, b) => b.ts - a.ts);
+
+  const total = filtered.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('totalVal').textContent = fmt(total);
+  document.getElementById('periodLabel').textContent = PERIOD_NAME[period];
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="big">🧾</div>Пока нет расходов за этот период.<br>Введите сумму выше.</div>`;
+    return;
+  }
+
+  // group by day
+  const groups = {};
+  filtered.forEach(e => {
+    const key = new Date(e.ts).toDateString();
+    (groups[key] = groups[key] || []).push(e);
+  });
+
+  let html = '';
+  Object.keys(groups).forEach(key => {
+    const items = groups[key];
+    const daySum = items.reduce((s, e) => s + e.amount, 0);
+    html += `<div class="day-head"><span>${dayLabel(key)}</span><span class="day-sum">${fmt(daySum)} ${CUR}</span></div>`;
+    items.forEach(e => {
+      const c = catById(e.cat) || { name: 'Удалено', color: '#666' };
+      html += `<div class="entry" data-id="${e.id}">
+        <span class="dot" style="background:${c.color}"></span>
+        <div class="entry-mid">
+          <div class="entry-cat">${esc(c.name)}</div>
+          ${e.note ? `<div class="entry-note">${esc(e.note)}</div>` : ''}
+        </div>
+        <div class="entry-amt">${fmt(e.amount)} ${CUR}</div>
+        <button class="del" data-del="${e.id}">✕</button>
+      </div>`;
+    });
+  });
+  list.innerHTML = html;
+
+  list.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = (ev) => {
+      ev.stopPropagation();
+      entries = entries.filter(x => x.id !== b.dataset.del);
+      save(); renderList();
+    };
+  });
+}
+
+function dayLabel(key) {
+  const d = new Date(key), now = new Date();
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  if (d.toDateString() === now.toDateString()) return 'Сегодня';
+  if (d.toDateString() === yest.toDateString()) return 'Вчера';
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m])); }
+
+// ---- Add entry ----
+const amountEl = document.getElementById('amount');
+const commentEl = document.getElementById('comment');
+const commentRow = document.getElementById('commentRow');
+const addBtn = document.getElementById('addBtn');
+
+function parseAmount() {
+  const raw = amountEl.value.replace(/\s/g, '').replace(',', '.');
+  const n = parseFloat(raw);
+  return isNaN(n) || n <= 0 ? null : n;
+}
+function refreshAddState() {
+  addBtn.disabled = !(parseAmount() && selCat);
+  commentRow.classList.toggle('show', amountEl.value.length > 0);
+}
+amountEl.addEventListener('input', refreshAddState);
+
+function addEntry() {
+  const amount = parseAmount();
+  if (!amount || !selCat) return;
+  entries.push({ id: uid(), amount, cat: selCat, note: commentEl.value.trim(), ts: Date.now() });
+  save();
+  amountEl.value = ''; commentEl.value = '';
+  commentRow.classList.remove('show');
+  refreshAddState();
+  renderList();
+  toast('Добавлено');
+  amountEl.focus();
+}
+addBtn.onclick = addEntry;
+commentEl.addEventListener('keydown', e => { if (e.key === 'Enter') addEntry(); });
+amountEl.addEventListener('keydown', e => { if (e.key === 'Enter' && parseAmount()) { e.preventDefault(); (commentEl.value ? addEntry() : commentEl.focus()); } });
+
+// ---- Category editor ----
+const catOverlay = document.getElementById('catOverlay');
+document.getElementById('editCatBtn').onclick = () => { renderCatEdit(); renderNewColors(); catOverlay.classList.add('show'); };
+document.getElementById('catDone').onclick = () => catOverlay.classList.remove('show');
+
+function renderCatEdit() {
+  const box = document.getElementById('catEditList');
+  box.innerHTML = '';
+  cats.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'cat-edit';
+    row.innerHTML = `
+      <button class="dot" data-color="${c.id}" style="background:${c.color}"></button>
+      <div class="name"><input value="${esc(c.name)}" data-name="${c.id}"></div>
+      <button class="rm" data-rm="${c.id}">⊖</button>`;
+    box.appendChild(row);
+  });
+  box.querySelectorAll('[data-name]').forEach(inp => {
+    inp.oninput = () => { const c = catById(inp.dataset.name); if (c) { c.name = inp.value; save(); renderChips(); } };
+  });
+  box.querySelectorAll('[data-rm]').forEach(b => {
+    b.onclick = () => {
+      if (cats.length <= 1) { toast('Нужна хотя бы одна'); return; }
+      cats = cats.filter(c => c.id !== b.dataset.rm);
+      save(); renderCatEdit(); renderChips(); renderList();
+    };
+  });
+  // cycle color on dot tap
+  box.querySelectorAll('[data-color]').forEach(b => {
+    b.onclick = () => {
+      const c = catById(b.dataset.color);
+      const idx = PALETTE.indexOf(c.color);
+      c.color = PALETTE[(idx + 1) % PALETTE.length];
+      save(); renderCatEdit(); renderChips(); renderList();
+    };
+  });
+}
+
+function renderNewColors() {
+  const box = document.getElementById('newCatColors');
+  box.innerHTML = '';
+  PALETTE.forEach(col => {
+    const d = document.createElement('button');
+    d.className = 'color-dot' + (col === selNewColor ? ' sel' : '');
+    d.style.background = col;
+    d.onclick = () => { selNewColor = col; renderNewColors(); };
+    box.appendChild(d);
+  });
+}
+
+document.getElementById('newCatAdd').onclick = () => {
+  const inp = document.getElementById('newCatName');
+  const name = inp.value.trim();
+  if (!name) return;
+  cats.push({ id: uid(), name, color: selNewColor });
+  inp.value = '';
+  selNewColor = PALETTE[cats.length % PALETTE.length];
+  save(); renderCatEdit(); renderNewColors(); renderChips();
+};
+
+// ---- Stats / period ----
+const statOverlay = document.getElementById('statOverlay');
+document.getElementById('statBtn').onclick = () => { renderSeg(); renderStat(); statOverlay.classList.add('show'); };
+document.getElementById('statDone').onclick = () => statOverlay.classList.remove('show');
+
+function renderSeg() {
+  document.querySelectorAll('#periodSeg button').forEach(b => {
+    b.classList.toggle('on', b.dataset.p === period);
+    b.onclick = () => { period = b.dataset.p; renderSeg(); renderStat(); renderList(); };
+  });
+}
+function renderStat() {
+  const body = document.getElementById('statBody');
+  const filtered = entries.filter(e => inPeriod(e.ts));
+  const total = filtered.reduce((s, e) => s + e.amount, 0);
+  if (total === 0) { body.innerHTML = `<div class="sub">Нет данных за период.</div>`; return; }
+
+  const byCat = {};
+  filtered.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + e.amount; });
+  const rows = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+
+  let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Всего: <b style="color:var(--text)">${fmt(total)} ${CUR}</b> · ${filtered.length} записей</div>`;
+  rows.forEach(([cid, sum]) => {
+    const c = catById(cid) || { name: 'Удалено', color: '#666' };
+    const pct = Math.round(sum / total * 100);
+    html += `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px">
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c.color};margin-right:7px"></span>${esc(c.name)}</span>
+        <span style="color:var(--muted)">${fmt(sum)} ${CUR} · ${pct}%</span>
+      </div>
+      <div style="height:7px;background:var(--surface-2);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${c.color}"></div>
+      </div>
+    </div>`;
+  });
+  body.innerHTML = html;
+}
+
+// ---- Backup / restore JSON ----
+document.getElementById('backupBtn').onclick = () => {
+  const data = {
+    app: 'budget-tracker',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    cats,
+    entries
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'budget-data.json';
+  a.click();
+  toast('Копия сохранена');
+};
+
+const restoreInput = document.getElementById('restoreInput');
+document.getElementById('restoreBtn').onclick = () => restoreInput.click();
+restoreInput.onchange = () => {
+  const file = restoreInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data.entries) || !Array.isArray(data.cats)) {
+        throw new Error('bad');
+      }
+      const mode = (entries.length > 0 || cats.length !== DEFAULT_CATS.length)
+        ? confirm('Объединить с текущими данными?\n\nОК — добавить из файла к тому, что есть.\nОтмена — заменить всё данными из файла.')
+        : false;
+
+      if (mode) {
+        // merge: add cats that don't exist by name, add entries by id
+        data.cats.forEach(nc => {
+          if (!cats.some(c => c.name === nc.name)) cats.push(nc);
+        });
+        const existIds = new Set(entries.map(e => e.id));
+        data.entries.forEach(ne => { if (!existIds.has(ne.id)) entries.push(ne); });
+      } else {
+        cats = data.cats;
+        entries = data.entries;
+      }
+      // fix entries pointing to cats matched by name after merge
+      save();
+      selCat = cats[0]?.id || null;
+      renderChips(); renderList(); renderSeg(); renderStat();
+      toast('Данные загружены');
+    } catch {
+      toast('Не удалось прочитать файл');
+    }
+    restoreInput.value = '';
+  };
+  reader.readAsText(file);
+};
+
+// ---- Export / clear ----
+document.getElementById('exportBtn').onclick = () => {
+  if (entries.length === 0) { toast('Нет данных'); return; }
+  const rows = [['Дата', 'Время', 'Категория', 'Сумма', 'Комментарий']];
+  entries.slice().sort((a, b) => a.ts - b.ts).forEach(e => {
+    const d = new Date(e.ts), c = catById(e.cat) || { name: '—' };
+    rows.push([
+      d.toLocaleDateString('ru-RU'),
+      d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      c.name, e.amount, (e.note || '').replace(/"/g, '""')
+    ]);
+  });
+  const csv = '\uFEFF' + rows.map(r => r.map(v => `"${v}"`).join(';')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `budget_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('Файл сохранён');
+};
+document.getElementById('clearBtn').onclick = () => {
+  if (!confirm('Удалить все записи? Категории останутся.')) return;
+  entries = []; save(); renderList(); renderStat();
+  toast('Очищено');
+};
+
+// ---- Toast ----
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 1400);
+}
+
+// ---- Close sheets on backdrop tap ----
+[catOverlay, statOverlay].forEach(o => {
+  o.onclick = e => { if (e.target === o) o.classList.remove('show'); };
+});
+
+// ---- Init ----
+document.getElementById('curLabel').textContent = CUR;
+document.getElementById('curSign').textContent = CUR;
+selNewColor = PALETTE[cats.length % PALETTE.length];
+renderChips();
+renderList();
+</script>
+</body>
+</html>
