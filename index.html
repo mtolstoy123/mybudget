@@ -880,6 +880,29 @@ selNewColor = PALETTE[cats.length % PALETTE.length];
 renderChips();
 renderList();
 renderHeaderNav();
+
+// ---- Автофокус на поле суммы ----
+// Фокусируем, только когда ни одна шторка не открыта (чтобы не мешать настройкам).
+function focusAmount() {
+  const sheetOpen = document.querySelector('.overlay.show');
+  if (sheetOpen) return;
+  const a = document.getElementById('amount');
+  // не перебиваем, если человек уже печатает комментарий
+  if (document.activeElement === document.getElementById('comment')) return;
+  a.focus();
+}
+
+// 1) При первой загрузке / открытии страницы
+window.addEventListener('load', () => setTimeout(focusAmount, 100));
+focusAmount();
+
+// 2) При возврате к вкладке (развернули Chrome, переключились обратно)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') setTimeout(focusAmount, 80);
+});
+window.addEventListener('focus', () => setTimeout(focusAmount, 80));
+window.addEventListener('pageshow', () => setTimeout(focusAmount, 80));
+
 </script>
 </body>
 </html>
