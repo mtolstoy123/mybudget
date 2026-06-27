@@ -174,8 +174,22 @@
   .cat-edit .drag { color: var(--muted); font-size: 16px; cursor: grab; }
 
   .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-  .color-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; }
+  .color-dot {
+    width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent;
+    position: relative;
+  }
   .color-dot.sel { border-color: var(--text); }
+  /* Галочка-индикатор: цвет уже занят какой-то категорией */
+  .color-dot.used::after {
+    content: '✓'; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; color: #fff;
+    text-shadow: 0 0 2px rgba(0,0,0,.6);
+  }
+  .color-hint {
+    font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.4;
+  }
+  .color-hint.warn { color: var(--accent); }
 
   .add-cat-row { display: flex; gap: 10px; margin-top: 18px; }
   .add-cat-row input {
@@ -285,6 +299,7 @@
       <button id="newCatAdd">Добавить</button>
     </div>
     <div class="color-picker" id="newCatColors"></div>
+    <div class="color-hint" id="colorHint">✓ — цвет уже используется другой категорией</div>
     <button class="sheet-done" id="catDone">Готово</button>
   </div>
 </div>
@@ -395,6 +410,11 @@ function save() {
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function fmt(n) { return n.toLocaleString('ru-RU'); }
 function catById(id) { return cats.find(c => c.id === id); }
+// Первый цвет палитры, не занятый ни одной категорией; если все заняты — первый по кругу
+function firstFreeColor() {
+  const used = new Set(cats.map(c => c.color));
+  return PALETTE.find(col => !used.has(col)) || PALETTE[cats.length % PALETTE.length];
+}
 
 // ---- Period range engine ----
 // Возвращает {start, end} (Date) для текущего периода с учётом смещения,
@@ -580,7 +600,7 @@ amountEl.addEventListener('keydown', e => { if (e.key === 'Enter' && parseAmount
 
 // ---- Category editor ----
 const catOverlay = document.getElementById('catOverlay');
-document.getElementById('editCatBtn').onclick = () => { renderCatEdit(); renderNewColors(); catOverlay.classList.add('show'); };
+document.getElementById('editCatBtn').onclick = () => { selNewColor = firstFreeColor(); renderCatEdit(); renderNewColors(); catOverlay.classList.add('show'); };
 document.getElementById('catDone').onclick = () => catOverlay.classList.remove('show');
 
 function renderCatEdit() {
@@ -619,13 +639,28 @@ function renderCatEdit() {
 function renderNewColors() {
   const box = document.getElementById('newCatColors');
   box.innerHTML = '';
+  const used = new Map();           // цвет -> название категории, которая его занимает
+  cats.forEach(c => { if (!used.has(c.color)) used.set(c.color, c.name); });
+
   PALETTE.forEach(col => {
     const d = document.createElement('button');
-    d.className = 'color-dot' + (col === selNewColor ? ' sel' : '');
+    const isUsed = used.has(col);
+    d.className = 'color-dot' + (col === selNewColor ? ' sel' : '') + (isUsed ? ' used' : '');
     d.style.background = col;
+    if (isUsed) d.title = 'Занят: ' + used.get(col);
     d.onclick = () => { selNewColor = col; renderNewColors(); };
     box.appendChild(d);
   });
+
+  // Подсказка под палитрой: предупреждаем, если выбранный цвет уже занят
+  const hint = document.getElementById('colorHint');
+  if (used.has(selNewColor)) {
+    hint.textContent = `Выбран цвет категории «${used.get(selNewColor)}» — будет повтор`;
+    hint.classList.add('warn');
+  } else {
+    hint.textContent = '✓ — цвет уже используется другой категорией';
+    hint.classList.remove('warn');
+  }
 }
 
 document.getElementById('newCatAdd').onclick = () => {
@@ -634,7 +669,7 @@ document.getElementById('newCatAdd').onclick = () => {
   if (!name) return;
   cats.push({ id: uid(), name, color: selNewColor });
   inp.value = '';
-  selNewColor = PALETTE[cats.length % PALETTE.length];
+  selNewColor = firstFreeColor();
   save(); renderCatEdit(); renderNewColors(); renderChips();
 };
 
@@ -892,7 +927,7 @@ function toast(msg) {
 // ---- Init ----
 document.getElementById('curLabel').textContent = CUR;
 document.getElementById('curSign').textContent = CUR;
-selNewColor = PALETTE[cats.length % PALETTE.length];
+selNewColor = firstFreeColor();
 renderChips();
 renderList();
 renderHeaderNav();
